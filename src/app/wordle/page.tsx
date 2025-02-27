@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { useRouter } from 'next/navigation';
 import { getTodayKey } from '@/lib/utils';
+import { HowToPlay } from '@/components/HowToPlay';
 
 interface DailyResult {
   word: string;
@@ -300,13 +301,13 @@ export default function WordlePage() {
 
   // Function to determine tile color based on letter status
   const getTileColor = (letter: string, index: number, word: string) => {
-    if (!letter) return 'bg-white';
+    if (!letter) return 'bg-[var(--tile-bg)] border-[var(--tile-border)]';
     if (word !== currentGuess && word) {
-      if (letter === targetWord[index]) return 'bg-green-500'; // Correct position
-      if (targetWord.includes(letter)) return 'bg-yellow-500'; // Wrong position but in word
-      return 'bg-gray-500'; // Not in word
+      if (letter === targetWord[index]) return 'bg-green-500 text-white';
+      if (targetWord.includes(letter)) return 'bg-yellow-500 text-white';
+      return 'bg-gray-500 text-white';
     }
-    return 'bg-white border-2 border-gray-300'; // Current guess or empty
+    return 'bg-[var(--tile-bg)] border-[var(--tile-border)]';
   };
 
   // Function to determine keyboard key color
@@ -372,8 +373,8 @@ export default function WordlePage() {
     return (
       <div className="flex-1 flex items-center justify-center relative">
         <div className="z-10 flex flex-col items-center gap-8 my-8">
-          {/* Result Banner - Updated Design */}
-          <div className="w-full max-w-[600px] p-6 bg-white rounded-lg shadow-lg text-center">
+          {/* Result Banner */}
+          <div className="w-full max-w-[600px] p-6 bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-sm rounded-lg shadow-lg text-center">
             {dailyResult.won ? (
               // Success State
               <div className="text-emerald-500">
@@ -479,8 +480,13 @@ export default function WordlePage() {
   // Regular game render
   return (
     <div className="flex-1 flex items-center justify-center relative">
-      {/* Split Game Container - centered */}
-      <div className="z-10 flex flex-col items-center gap-8 my-8">
+      {/* Game content */}
+      <motion.div 
+        className="z-10 flex flex-col items-center gap-8 my-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         {/* Letters Grid Panel */}
         <div className="flex justify-center">
           {/* Confetti effect */}
@@ -529,9 +535,9 @@ export default function WordlePage() {
         </div>
 
         {/* Keyboard Panel */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-[600px] mb-8">
+        <div className="bg-[var(--keyboard-bg)] backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-[600px]">
           {KEYBOARD_ROWS.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex justify-center gap-1.5 mb-2">
+            <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5 mb-1 sm:mb-2">
               {row.map((key) => (
                 <motion.button
                   key={key}
@@ -563,7 +569,7 @@ export default function WordlePage() {
             Get a hint ({hintsRemaining} remaining)
           </button>
         )}
-      </div>
+      </motion.div>
 
       {/* Game Over Modal Overlay */}
       <AnimatePresence>
@@ -583,7 +589,7 @@ export default function WordlePage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
+                bg-[var(--modal-bg)] rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
             >
               {hasWon ? (
                 <>
@@ -674,46 +680,7 @@ export default function WordlePage() {
 
       {/* About Modal */}
       <AnimatePresence>
-        {showAbout && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => setShowAbout(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md"
-            >
-              <h2 className="text-2xl font-bold mb-4">How to Play</h2>
-              <div className="space-y-4 text-gray-600">
-                <p>Guess the word in 6 tries.</p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Each guess must be a valid 5-letter word.</li>
-                  <li>The color of the tiles will change to show how close your guess was:</li>
-                </ul>
-                <div className="space-y-2 pl-5">
-                  <p>🟩 Green: Letter is in the correct spot</p>
-                  <p>🟨 Yellow: Letter is in the word but in the wrong spot</p>
-                  <p>⬜ Gray: Letter is not in the word</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAbout(false)}
-                className="mt-6 w-full bg-[#3498db] text-white px-6 py-3 rounded-lg 
-                  font-bold shadow-lg hover:bg-[#2980b9] 
-                  transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Got it!
-              </button>
-            </motion.div>
-          </>
-        )}
+        {showAbout && <HowToPlay onClose={() => setShowAbout(false)} />}
       </AnimatePresence>
 
       {/* Hint Modal */}
@@ -732,7 +699,7 @@ export default function WordlePage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
+                bg-[var(--modal-bg)] rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
             >
               <div className="text-2xl font-bold mb-6 text-[#2980b9]">Here&apos;s Your Hint!</div>
               {hintLetter && (

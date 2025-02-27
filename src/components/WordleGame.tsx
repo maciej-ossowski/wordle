@@ -5,14 +5,17 @@ import ReactConfetti from 'react-confetti';
 import { KEYBOARD_ROWS, WORD_LENGTH, MAX_GUESSES } from '@/lib/constants';
 import { tileVariants, keyVariants } from '@/lib/animations';
 import React from 'react';
+import { HintModal } from './HintModal';
 
 interface WordleGameProps {
   targetWord: string;
   onGameComplete?: (won: boolean, attempts: number) => void;
   showConfetti?: boolean;
+  isPractice?: boolean;
+  onRestart?: () => void;
 }
 
-export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: WordleGameProps) {
+export function WordleGame({ targetWord, onGameComplete, showConfetti = true, isPractice = false, onRestart }: WordleGameProps) {
   const [currentGuess, setCurrentGuess] = useState('');
   const [guesses, setGuesses] = useState<string[]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -152,6 +155,26 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
     }
   };
 
+  // Add effect to reset game state when targetWord changes
+  useEffect(() => {
+    setGuesses([]);
+    setCurrentGuess('');
+    setGameOver(false);
+    setShowModal(false);
+  }, [targetWord]);
+
+  // Update the restart handler
+  const handleRestartClick = () => {
+    if (onRestart) {
+      setShowModal(false);
+      setGameOver(false);
+      setGuesses([]);
+      setCurrentGuess('');
+      setUsedHint(false);
+      onRestart();
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-8">
       {/* Letters Grid Panel */}
@@ -239,49 +262,11 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
       )}
 
       {/* Hint Modal */}
-      <AnimatePresence>
-        {showHintModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => setShowHintModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
-            >
-              <div className="text-2xl font-bold mb-6 text-[#2980b9]">Here&apos;s Your Hint!</div>
-              {hintLetter && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="w-16 h-16 bg-[#3498db] rounded-lg flex items-center justify-center">
-                      <span className="text-3xl font-bold text-white">{hintLetter.letter}</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-600">
-                    The letter <span className="font-bold text-[#2980b9]">{hintLetter.letter}</span> is 
-                    at position <span className="font-bold text-[#2980b9]">{hintLetter.position}</span>
-                  </p>
-                </div>
-              )}
-              <button
-                onClick={() => setShowHintModal(false)}
-                className="mt-6 w-full bg-[#3498db] text-white px-6 py-3 rounded-lg 
-                  font-bold shadow-lg hover:bg-[#2980b9] 
-                  transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Got it!
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <HintModal 
+        isOpen={showHintModal}
+        onClose={() => setShowHintModal(false)}
+        hintLetter={hintLetter}
+      />
 
       {/* Game Over Modal */}
       <AnimatePresence>
@@ -291,7 +276,7 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 bg-[#3498db] dark:bg-black bg-opacity-50 z-[100]"
             />
             
             <motion.div
@@ -299,14 +284,13 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md
-                text-center"
+                bg-[var(--modal-bg)] rounded-xl p-8 shadow-2xl z-[101] w-[90%] max-w-md text-center"
             >
               {hasWon ? (
                 <>
-                  <h2 className="text-4xl font-bold mb-4">🎉 Congratulations!</h2>
+                  <h2 className="text-4xl font-bold mb-4 text-[#2980b9]">🎉 Congratulations!</h2>
                   <p className="text-xl mb-4">
-                    You found the word <span className="font-bold text-emerald-500">{targetWord}</span>!
+                    <span className="text-[#2980b9]">You found the word</span> <span className="font-bold text-[#2980b9]">{targetWord}</span>
                   </p>
                   <p className="text-gray-600 mb-6">
                     You solved it in {guesses.length} {guesses.length === 1 ? 'try' : 'tries'}
@@ -314,23 +298,24 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
                 </>
               ) : (
                 <>
-                  <h2 className="text-3xl font-bold mb-4">Game Over</h2>
+                  <h2 className="text-3xl font-bold mb-4 text-[#2980b9]">Game Over</h2>
                   <p className="text-xl mb-4">
-                    The word was <span className="font-bold text-red-500">{targetWord}</span>
+                    <span className="text-[#2980b9]">The word was</span> <span className="font-bold text-red-500">{targetWord}</span>
                   </p>
                   <p className="text-gray-600 mb-6">Better luck next time!</p>
                 </>
               )}
               
-              <button
-                onClick={() => window.location.reload()}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white 
-                  px-6 py-3 rounded-lg font-bold shadow-lg
-                  hover:from-emerald-600 hover:to-teal-600 
-                  transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Play Again
-              </button>
+              {isPractice && (
+                <button
+                  onClick={handleRestartClick}
+                  className="bg-[#3498db] text-white px-6 py-3 rounded-lg 
+                    font-bold shadow-lg hover:bg-[#2980b9] 
+                    transform hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  Play Again
+                </button>
+              )}
             </motion.div>
           </>
         )}

@@ -11,12 +11,12 @@ export function RootTemplate({
   const [showAbout, setShowAbout] = useState(false);
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#3498db]">
+    <main className="flex min-h-screen flex-col bg-[#3498db] dark:bg-[#313233]">
       {/* Background Pattern */}
       <div 
-        className="absolute inset-0 bg-[#3498db]"
+        className="fixed inset-0 transition-none bg-[#3498db] dark:bg-[#313233]"
         style={{
-          backgroundImage: 'linear-gradient(135deg, #3498db 25%, #2980b9 25%)',
+          backgroundImage: 'linear-gradient(135deg, var(--layout-bg) 25%, var(--layout-bg-secondary) 25%)',
           backgroundSize: '100% 100%',
           opacity: 0.8
         }}
@@ -25,7 +25,9 @@ export function RootTemplate({
       {/* Content */}
       <div className="relative z-10 flex flex-col flex-1">
         <Navigation showAbout={showAbout} setShowAbout={setShowAbout} />
-        {children}
+        <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </div>
       </div>
 
       {/* About Modal */}
@@ -36,7 +38,7 @@ export function RootTemplate({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 bg-[#3498db] dark:bg-black z-40"
               onClick={() => setShowAbout(false)}
             />
             <motion.div
@@ -44,9 +46,9 @@ export function RootTemplate({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md"
+                bg-white dark:bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md"
             >
-              <h2 className="text-2xl font-bold mb-4">How to Play</h2>
+              <h2 className="text-2xl font-bold mb-4 text-[#2980b9] dark:text-white">How to Play</h2>
               <div className="space-y-4 text-gray-600">
                 <p>Guess the word in 6 tries.</p>
                 <ul className="list-disc pl-5 space-y-2">
@@ -61,11 +63,11 @@ export function RootTemplate({
               </div>
               <button
                 onClick={() => setShowAbout(false)}
-                className="mt-6 w-full bg-[#3498db] text-white px-6 py-3 rounded-lg 
+                className="mt-6 w-full bg-[#3498db] text-white dark:text-white px-6 py-3 rounded-lg 
                   font-bold shadow-lg hover:bg-[#2980b9] 
                   transform hover:-translate-y-0.5 transition-all duration-200"
               >
-                Got it!
+                <span className="text-white">Got it!</span>
               </button>
             </motion.div>
           </>

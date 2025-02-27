@@ -51,12 +51,11 @@ export default function Home() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
-      {/* Content Container */}
+    <div className="flex-1 flex items-center justify-center relative">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="z-10 w-full max-w-md p-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl"
+        className="bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-sm rounded-lg shadow-xl p-8 w-full max-w-md mx-auto"
       >
         <div className="text-center mb-8">
           <motion.h1 
@@ -67,7 +66,7 @@ export default function Home() {
           >
             WORDLE
           </motion.h1>
-          <p className="text-[#34495e] text-lg">Challenge your word-guessing skills!</p>
+          <p className="text-[#34495e] dark:text-gray-300 text-lg">Challenge your word-guessing skills!</p>
         </div>
 
         {savedUsername ? (
@@ -77,25 +76,25 @@ export default function Home() {
             animate={{ opacity: 1 }}
             className="text-center"
           >
-            <h2 className="text-2xl font-bold mb-4 text-[#2980b9]">
+            <h2 className="text-2xl font-bold mb-4 text-[#2980b9] dark:text-white">
               Welcome back, {savedUsername}!
             </h2>
             <div className="space-y-4">
               <button
                 onClick={handleContinue}
-                className="w-full bg-[#3498db] text-white px-6 py-3 rounded-lg 
-                  font-bold shadow-lg hover:bg-[#2980b9] 
+                className="w-full bg-[#3498db] dark:bg-[#2980b9] text-white px-6 py-3 rounded-lg 
+                  font-bold shadow-lg hover:bg-[#2980b9] dark:hover:bg-[#3498db]
                   transform hover:-translate-y-0.5 transition-all duration-200"
               >
-                Continue Playing
+                <span className="text-white">Continue Playing</span>
               </button>
               <button
                 onClick={handleNewPlayer}
-                className="w-full bg-white text-[#2980b9] border-2 border-[#3498db] 
-                  px-6 py-3 rounded-lg font-bold hover:bg-[#f8f9fa] 
+                className="w-full bg-white dark:bg-transparent text-[#2980b9] dark:text-white border-2 border-[#3498db] 
+                  px-6 py-3 rounded-lg font-bold hover:bg-[#f8f9fa] dark:hover:bg-white/10
                   transform hover:-translate-y-0.5 transition-all duration-200"
               >
-                New Player
+                <span className="text-[#2980b9] dark:text-white">New Player</span>
               </button>
             </div>
           </motion.div>
@@ -108,7 +107,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
           >
             <div>
-              <label htmlFor="username" className="block text-lg font-semibold text-[#2980b9] mb-2">
+              <label htmlFor="username" className="block text-lg font-semibold text-[#2980b9] dark:text-white mb-2">
                 Enter your name to start playing
               </label>
               <input
@@ -118,18 +117,19 @@ export default function Home() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border-2 border-[#3498db] 
                   focus:ring-2 focus:ring-[#2980b9] focus:border-[#2980b9] 
-                  transition-all duration-200 text-[#34495e]"
+                  transition-all duration-200 text-[#34495e] dark:text-white
+                  dark:bg-[#1a1a1a] dark:border-[#3498db]"
                 placeholder="Your name"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-[#3498db] text-white px-6 py-3 rounded-lg 
-                font-bold shadow-lg hover:bg-[#2980b9] 
+              className="w-full bg-[#3498db] dark:bg-[#2980b9] text-white px-6 py-3 rounded-lg 
+                font-bold shadow-lg hover:bg-[#2980b9] dark:hover:bg-[#3498db]
                 transform hover:-translate-y-0.5 transition-all duration-200"
             >
-              Start Playing
+              <span className="text-white">Start Playing</span>
             </button>
           </motion.form>
         )}

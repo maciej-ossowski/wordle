@@ -5,20 +5,377 @@
   --font-mono: var(--font-geist-mono);
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  html {
+    background-color: #3498db;
+  }
+
+  html.dark {
+    background-color: #313233;
+  }
+
+  body {
+    background-color: #3498db;
+  }
+
+  .dark body {
+    background-color: #313233;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html {
+    background-color: #313233;
   }
+}
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --tile-bg: #ffffff;
+  --tile-border: #d3d6da;
+  --keyboard-bg: rgba(255, 255, 255, 0.9);
+  --modal-bg: #ffffff;
+  --nav-bg: transparent;
+  --layout-bg: #3498db;          /* Primary blue */
+  --content-bg: #3498db;
+  --layout-bg-secondary: #2980b9; /* Same blue for consistent gradient */
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #ffffff;
+  --tile-bg: #1a1a1a;
+  --tile-border: #404040;
+  --keyboard-bg: rgba(26, 26, 26, 0.9);
+  --modal-bg: #1a1a1a;
+  --nav-bg: #1a1a1a;
+  --layout-bg: #313233;          /* Match the initial background */
+  --content-bg: #0f0f0f;
+  --layout-bg-secondary: #424242;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Add styles for navigation in dark mode */
+.dark nav {
+  background-color: var(--nav-bg);
+}
+
+.dark .text-gray-600 {
+  color: #a1a1aa;
+}
+
+.dark .bg-gray-50 {
+  background-color: #1a1a1a;
+}
+
+/* Add styles for main content area */
+main {
+  background: transparent;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Add specific page content styles */
+.page-content {
+  background: transparent;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Update modal and keyboard styles in dark mode */
+.dark .bg-white\/90 {
+  background-color: rgba(26, 26, 26, 0.9);
+}
+
+.dark .bg-white {
+  background-color: #1a1a1a;
+}
+
+/* Update text colors in dark mode */
+.dark .text-gray-500 {
+  color: #a1a1aa;
+}
+
+.dark .text-gray-700 {
+  color: #d4d4d8;
+}
+
+/* Add these styles for dark mode text colors */
+.dark .text-\[\#2980b9\] {
+  color: #ffffff;
+}
+
+.dark .text-\[\#3498db\] {
+  color: #ffffff;
+}
+
+.dark .text-emerald-500 {
+  color: #ffffff;
+}
+
+.dark .text-blue-500 {
+  color: #ffffff;
+}
+
+.dark .text-purple-500 {
+  color: #ffffff;
+}
+
+.dark .text-amber-500 {
+  color: #ffffff;
+}
+
+/* Update button backgrounds in dark mode */
+.dark .bg-\[\#3498db\] {
+  background-color: #2d2d2d;
+}
+
+.dark .hover\:bg-\[\#2980b9\]:hover {
+  background-color: #404040;
+}
+
+/* Update border colors */
+.dark .border-\[\#3498db\] {
+  border-color: #404040;
+}
+
+/* Add keyboard text color styles for dark mode */
+.dark .bg-green-500,
+.dark .bg-yellow-500,
+.dark .bg-gray-500 {
+  color: #000000 !important;  /* Make text black on colored keys */
+}
+
+/* Update keyboard button text color */
+.dark button.font-bold {
+  color: #000000;  /* Make all keyboard button text black */
+}
+
+/* Ensure text is visible on white/light backgrounds */
+.dark .bg-white button,
+.dark .bg-white\/90 button {
+  color: #000000;
+}
+
+/* Keep text black for special keys */
+.dark button.text-sm {
+  color: #000000;
+}
+
+/* Add these styles for letter grid in dark mode */
+.dark .grid-rows-6 div {
+  color: var(--foreground);  /* Use the white foreground color */
+}
+
+/* Ensure colored tiles (green, yellow, grey) keep black text */
+.dark .bg-green-500,
+.dark .bg-yellow-500,
+.dark .bg-gray-500 {
+  color: #000000 !important;
+}
+
+/* Make empty tile letters white */
+.dark .bg-\[var\(--tile-bg\)\] {
+  color: #ffffff;
+}
+
+/* Make current guess letters white */
+.dark .border-\[var\(--tile-border\)\] {
+  color: #ffffff;
+}
+
+/* Update bottom links in dark mode to be more visible */
+.dark .text-white\/80,
+.dark .text-gray-400,
+.dark .text-gray-500,
+.dark .text-gray-600 {
+  color: #ffffff !important;  /* Make text fully white */
+}
+
+/* Update hover states */
+.dark .text-white\/80:hover,
+.dark .text-gray-400:hover,
+.dark .text-gray-500:hover,
+.dark .text-gray-600:hover {
+  opacity: 0.8;  /* Slight opacity on hover for feedback */
+}
+
+/* Style for hint text and underline */
+.dark .underline {
+  color: #ffffff;
+  text-decoration-color: #ffffff;
+}
+
+.dark .underline:hover {
+  opacity: 0.8;
+  text-decoration-color: #ffffff;
+}
+
+/* Make sure all bottom text elements are white */
+.dark .text-sm,
+.dark .text-xs {
+  color: #ffffff;
+}
+
+/* Ensure hint text and remaining count are visible */
+.dark [class*="text-gray"] {
+  color: #ffffff;
+}
+
+/* Add styles for home page text in dark mode */
+.dark .text-\[\#34495e\] {
+  color: #d1d5db;  /* Light grey color */
+}
+
+/* Alternative if you prefer pure white */
+/* 
+.dark .text-\[\#34495e\] {
+  color: #ffffff;
+}
+*/
+
+/* Update button text colors in dark mode */
+.dark .bg-\[\#3498db\] button,
+.dark .bg-gradient-to-r button,
+.dark button.bg-\[\#3498db\],
+.dark button.bg-gradient-to-r {
+  color: #ffffff !important;
+}
+
+/* Update input text color in dark mode */
+.dark input {
+  color: #ffffff;
+}
+
+/* Update button text colors for all states */
+.dark .bg-\[\#3498db\],
+.dark .bg-gradient-to-r {
+  color: #ffffff;
+}
+
+/* Update hover states for buttons */
+.dark .hover\:bg-\[\#2980b9\]:hover {
+  background-color: #404040;
+  color: #ffffff;
+}
+
+/* Style for primary buttons in dark mode */
+.dark .bg-gradient-to-r.from-emerald-500.to-teal-500 {
+  background: #2d2d2d;
+  color: #ffffff;
+}
+
+.dark .hover\:from-emerald-600:hover {
+  background: #404040;
+}
+
+/* Style for secondary buttons in dark mode */
+.dark .border-2.border-\[\#3498db\] {
+  border-color: #404040;
+  color: #ffffff;
+}
+
+/* Keyboard specific styles for dark mode */
+.dark div[class*="backdrop-blur-sm"] {
+  /* All keyboard buttons */
+  & button {
+    color: #000000 !important;
+  }
+
+  /* Special keys (Enter/Backspace) */
+  & button.text-sm {
+    color: #000000 !important;
+  }
+
+  /* Letter buttons */
+  & button.font-bold {
+    color: #000000 !important;
+  }
+}
+
+/* Target keyboard container directly */
+.dark div[class*="bg-white/90"] button,
+.dark div[class*="bg-white\/90"] button {
+  color: #000000 !important;
+}
+
+/* Ensure colored state buttons stay black */
+.dark button.bg-green-500,
+.dark button.bg-yellow-500,
+.dark button.bg-gray-500 {
+  color: #000000 !important;
+}
+
+/* Override any other styles that might affect keyboard */
+.dark div[class*="backdrop-blur-sm"] button[class*="rounded-lg"],
+.dark div[class*="bg-white"] button[class*="rounded-lg"] {
+  color: #000000 !important;
+}
+
+/* Remove any white text overrides for keyboard */
+.dark div[class*="backdrop-blur-sm"] button.text-white,
+.dark div[class*="bg-white"] button.text-white {
+  color: #000000 !important;
+}
+
+/* Home page and modal button styles for dark mode */
+.dark .z-10 button:not([class*="backdrop-blur-sm"] *),
+.dark .fixed button:not([class*="backdrop-blur-sm"] *) {
+  color: #ffffff !important;
+}
+
+/* Primary action buttons */
+.dark .bg-\[\#3498db\] button:not([class*="backdrop-blur-sm"] *),
+.dark button.bg-\[\#3498db\]:not([class*="backdrop-blur-sm"] *),
+.dark .bg-gradient-to-r button:not([class*="backdrop-blur-sm"] *) {
+  color: #ffffff !important;
+}
+
+/* Secondary/outline buttons */
+.dark .border-2 button:not([class*="backdrop-blur-sm"] *),
+.dark button.border-2:not([class*="backdrop-blur-sm"] *) {
+  color: #ffffff !important;
+}
+
+/* Keep keyboard buttons black */
+.dark div[class*="backdrop-blur-sm"] button {
+  color: #000000 !important;
+}
+
+/* Ensure colored keyboard buttons stay black */
+.dark button.bg-green-500,
+.dark button.bg-yellow-500,
+.dark button.bg-gray-500 {
+  color: #000000 !important;
+}
+
+/* Add styles for mobile menu in dark mode */
+.dark .absolute.right-0.top-full {
+  background-color: #1a1a1a !important;  /* Dark grey background */
+}
+
+/* Update mobile menu hover states in dark mode */
+.dark .absolute.right-0.top-full a:hover,
+.dark .absolute.right-0.top-full button:hover {
+  background-color: #2d2d2d;
+}
+
+/* Ensure mobile menu text is white */
+.dark .absolute.right-0.top-full a,
+.dark .absolute.right-0.top-full button {
+  color: #ffffff !important;
 }
