@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import ReactConfetti from 'react-confetti';
 import { useRouter } from 'next/navigation';
 import { getTodayKey } from '@/lib/utils';
 import { HowToPlay } from '@/components/HowToPlay';
+import { WordleGame } from '@/components/WordleGame';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface DailyResult {
   word: string;
@@ -25,12 +25,6 @@ type UnknownResult = {
   guesses?: unknown;
 };
 
-const KEYBOARD_ROWS = [
-  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫']
-];
-
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
 
@@ -45,12 +39,6 @@ const tileVariants = {
     x: [0, -10, 10, -10, 10, 0],
     transition: { duration: 0.4 }
   }
-};
-
-// Animation variants for keyboard keys
-const keyVariants = {
-  pressed: { scale: 0.9 },
-  tap: { scale: 0.9 }
 };
 
 interface Stats {
@@ -90,18 +78,11 @@ export default function WordlePage() {
   const [currentGuess, setCurrentGuess] = useState('');
   const [guesses, setGuesses] = useState<string[]>([]);
   const [gameOver, setGameOver] = useState(false);
-  const [shakingRow, setShakingRow] = useState<number | null>(null);
-  const [windowSize, setWindowSize] = useState({
-    width: 0,
-    height: 0,
-  });
   const [showModal, setShowModal] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [targetWord, setTargetWord] = useState('XXXXX');
   const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showHintModal, setShowHintModal] = useState(false);
-  const [hintLetter, setHintLetter] = useState<{letter: string, position: number} | null>(null);
   const [stats, setStats] = useState<Stats>({
     currentStreak: 0,
     maxStreak: 0,
@@ -111,7 +92,6 @@ export default function WordlePage() {
       1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, fail: 0
     }
   });
-  const [hintsRemaining, setHintsRemaining] = useState(3); // Allow 3 hints per game
   const [showConfetti, setShowConfetti] = useState(false);
   const [hasWon, setHasWon] = useState(false);
 
@@ -125,27 +105,6 @@ export default function WordlePage() {
       router.push('/');
     }
   }, [router]);
-
-  // Initialize window size after mount
-  useEffect(() => {
-    setWindowSize({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-  }, []);
-
-  // Window size effect for confetti
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Check for existing result and fetch word
   useEffect(() => {
@@ -270,9 +229,6 @@ export default function WordlePage() {
       if (key === 'ENTER') {
         if (currentGuess.length === WORD_LENGTH) {
           submitGuess();
-        } else {
-          setShakingRow(guesses.length);
-          setTimeout(() => setShakingRow(null), 400);
         }
       } else if (key === '⌫') {
         setCurrentGuess(prev => prev.slice(0, -1));
@@ -280,7 +236,7 @@ export default function WordlePage() {
         setCurrentGuess(prev => prev + key);
       }
     };
-  }, [currentGuess, gameOver, guesses.length, submitGuess]);
+  }, [currentGuess, gameOver, submitGuess]);
 
   // Use handleKeyInput directly without destructuring
   useEffect(() => {
@@ -310,53 +266,45 @@ export default function WordlePage() {
     return 'bg-[var(--tile-bg)] border-[var(--tile-border)]';
   };
 
-  // Function to determine keyboard key color
-  const getKeyColor = (key: string) => {
-    if (guesses.some(guess => 
-      guess.split('').some((letter, i) => 
-        letter === key && targetWord[i] === letter
-      )
-    )) return 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white hover:from-emerald-500 hover:to-emerald-700 shadow-emerald-200 shadow-inner';
-    
-    if (guesses.some(guess => 
-      guess.includes(key) && targetWord.includes(key)
-    )) return 'bg-gradient-to-br from-amber-400 to-amber-600 text-white hover:from-amber-500 hover:to-amber-700 shadow-amber-200 shadow-inner';
-    
-    if (guesses.some(guess => guess.includes(key))) 
-      return 'bg-gradient-to-br from-gray-600 to-gray-800 text-white hover:from-gray-700 hover:to-gray-900 shadow-gray-200 shadow-inner';
-    
-    return 'bg-gradient-to-br from-blue-100 to-gray-200 text-gray-700 hover:from-blue-200 hover:to-gray-300 shadow-sm';
-  };
+  // Add handleGameComplete function
+  const handleGameComplete = (won: boolean, attempts: number) => {
+    setHasWon(won);
+    setShowConfetti(won);
+    setGameOver(true);
 
-  // Update the getHint function
-  const getHint = () => {
-    if (hintsRemaining <= 0) return;
-
-    const correctLetters = new Set();
-    guesses.forEach((guess) => {
-      guess.split('').forEach((letter, index) => {
-        if (letter === targetWord[index]) {
-          correctLetters.add(index);
-        }
-      });
-    });
-
-    const availableIndices: number[] = [];
-    for (let i = 0; i < targetWord.length; i++) {
-      if (!correctLetters.has(i)) {
-        availableIndices.push(i);
-      }
+    // Daily game specific logic
+    const result: DailyResult = {
+      word: targetWord,
+      won,
+      attempts,
+      date: getTodayKey(),
+      guesses: [...guesses, currentGuess]
+    };
+    
+    localStorage.setItem(`wordle_daily_${getTodayKey()}`, JSON.stringify(result));
+    setDailyResult(result);
+    
+    // Update statistics
+    const newStats: Stats = { ...stats };
+    newStats.totalGames += 1;
+    
+    if (won) {
+      newStats.wins += 1;
+      newStats.currentStreak += 1;
+      newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
+      newStats.attempts[attempts as keyof typeof newStats.attempts] += 1;
+    } else {
+      newStats.currentStreak = 0;
+      newStats.attempts.fail += 1;
     }
 
-    if (availableIndices.length > 0) {
-      const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-      setHintLetter({
-        letter: targetWord[randomIndex],
-        position: randomIndex + 1
-      });
-      setShowHintModal(true);
-      setHintsRemaining(prev => prev - 1);
-    }
+    // Save updated stats and update state
+    localStorage.setItem('wordle_stats', JSON.stringify(newStats));
+    setStats(newStats);
+
+    setTimeout(() => {
+      setShowModal(true);
+    }, 2000);
   };
 
   // Add loading state to the render
@@ -480,95 +428,17 @@ export default function WordlePage() {
   // Regular game render
   return (
     <div className="flex-1 flex items-center justify-center relative">
-      {/* Game content */}
       <motion.div 
         className="z-10 flex flex-col items-center gap-8 my-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Letters Grid Panel */}
-        <div className="flex justify-center">
-          {/* Confetti effect */}
-          {showConfetti && hasWon && gameOver && (
-            <ReactConfetti
-              width={windowSize.width}
-              height={windowSize.height}
-              recycle={false}
-              numberOfPieces={500}
-              gravity={0.2}
-            />
-          )}
-          {/* Game Board */}
-          <div className="inline-grid grid-rows-6 gap-[6px] bg-[#3498db] p-[6px]">
-            {[...Array(MAX_GUESSES)].map((_, rowIndex) => (
-              <motion.div
-                key={rowIndex}
-                className="grid grid-cols-5 gap-[6px]"
-                animate={shakingRow === rowIndex ? "shake" : ""}
-                variants={tileVariants}
-              >
-                {[...Array(WORD_LENGTH)].map((_, colIndex) => {
-                  const isCurrentRow = rowIndex === guesses.length;
-                  const guess = isCurrentRow ? currentGuess : guesses[rowIndex] || '';
-                  const letter = guess[colIndex] || '';
-                  const isRevealed = !isCurrentRow && guess;
-
-                  return (
-                    <motion.div
-                      key={colIndex}
-                      variants={tileVariants}
-                      initial="initial"
-                      animate={isRevealed ? "flip" : ""}
-                      className={`w-[62px] h-[62px] flex items-center justify-center text-[2rem] font-bold 
-                        rounded-md border border-[#d3d6da]/30
-                        ${getTileColor(letter, colIndex, guess)}
-                        ${isRevealed ? 'text-white' : 'text-black'}`}
-                    >
-                      {letter}
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Keyboard Panel */}
-        <div className="bg-[var(--keyboard-bg)] backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-[600px]">
-          {KEYBOARD_ROWS.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5 mb-1 sm:mb-2">
-              {row.map((key) => (
-                <motion.button
-                  key={key}
-                  variants={keyVariants}
-                  whileTap="tap"
-                  onClick={() => handleKeyInput(key)}
-                  className={`${
-                    key.length > 1 ? 'px-4 text-sm' : 'w-11'
-                  } h-14 rounded-lg flex items-center justify-center font-bold 
-                  transition-all duration-200
-                  ${getKeyColor(key)}
-                  active:scale-95 
-                  hover:shadow-lg hover:-translate-y-0.5`}
-                >
-                  {key}
-                </motion.button>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        {/* Hint Button */}
-        {!gameOver && hintsRemaining > 0 && (
-          <button
-            onClick={getHint}
-            className="text-white/80 hover:text-white underline underline-offset-4 
-              transition-colors duration-200 text-sm mt-4"
-          >
-            Get a hint ({hintsRemaining} remaining)
-          </button>
-        )}
+        <WordleGame 
+          targetWord={targetWord}
+          onGameComplete={handleGameComplete}
+          showConfetti={showConfetti}
+        />
       </motion.div>
 
       {/* Game Over Modal Overlay */}
@@ -681,51 +551,6 @@ export default function WordlePage() {
       {/* About Modal */}
       <AnimatePresence>
         {showAbout && <HowToPlay onClose={() => setShowAbout(false)} />}
-      </AnimatePresence>
-
-      {/* Hint Modal */}
-      <AnimatePresence>
-        {showHintModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => setShowHintModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-[var(--modal-bg)] rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
-            >
-              <div className="text-2xl font-bold mb-6 text-[#2980b9]">Here&apos;s Your Hint!</div>
-              {hintLetter && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="w-16 h-16 bg-[#3498db] rounded-lg flex items-center justify-center">
-                      <span className="text-3xl font-bold text-white">{hintLetter.letter}</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-600">
-                    The letter <span className="font-bold text-[#2980b9]">{hintLetter.letter}</span> is 
-                    at position <span className="font-bold text-[#2980b9]">{hintLetter.position}</span>
-                  </p>
-                </div>
-              )}
-              <button
-                onClick={() => setShowHintModal(false)}
-                className="mt-6 w-full bg-[#3498db] text-white px-6 py-3 rounded-lg 
-                  font-bold shadow-lg hover:bg-[#2980b9] 
-                  transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Got it!
-              </button>
-            </motion.div>
-          </>
-        )}
       </AnimatePresence>
     </div>
   );
