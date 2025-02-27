@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { RootTemplate } from "@/components/RootTemplate";
+import { ClientLayout } from "./ClientLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,7 +43,10 @@ export default function RootLayout({
         `}</style>
       </head>
       <body className={`${inter.className} bg-[#3498db] dark:bg-[#313233] transition-none`}>
-        <RootTemplate>{children}</RootTemplate>
+        <div id="modal-root" />
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );

@@ -2,16 +2,23 @@
 import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { ReactNode } from 'react';
+
+interface RootTemplateProps {
+  children: ReactNode;
+  showConfetti?: boolean;
+}
 
 export function RootTemplate({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  showConfetti = false,
+}: RootTemplateProps) {
   const [showAbout, setShowAbout] = useState(false);
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#3498db] dark:bg-[#313233]">
+    <main className={`flex min-h-screen flex-col bg-[#3498db] dark:bg-[#313233] ${
+      showConfetti ? 'overflow-hidden' : ''
+    }`}>
       {/* Background Pattern */}
       <div 
         className="fixed inset-0 transition-none bg-[#3498db] dark:bg-[#313233]"

@@ -1,49 +1,47 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { WordleGame } from '@/components/WordleGame';
-import { motion } from 'framer-motion';
-import ReactConfetti from 'react-confetti';
-
-interface GameResult {
-  word: string;
-  attempts: number;
-  won: boolean;
-  timestamp: number;
-}
-
-type GameStatus = 'playing' | 'won' | 'lost';
+import { motion, AnimatePresence } from 'framer-motion';
+import { GameResult } from '@/types/game';
+import { ResultsPanel } from '@/components/ResultsPanel';
+import { HintButton } from '@/components/HintButton';
+import { GameConfetti } from '@/components/GameConfetti';
+import { PracticeGameOverModal } from '@/components/PracticeGameOverModal';
 
 export default function PracticePage() {
-  const [currentWord, setCurrentWord] = useState('');
+  const [gameState, setGameState] = useState({
+    currentWord: '',
+    gameStatus: 'playing' as 'playing' | 'won' | 'lost',
+    showConfetti: false,
+    showWinModal: false
+  });
+
   const [gameResults, setGameResults] = useState<GameResult[]>([]);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [gameStatus, setGameStatus] = useState<GameStatus>('playing');
+  const [guesses, setGuesses] = useState<string[]>([]);
 
   const getRandomWord = async () => {
-    // Get a random word from the list
     const response = await fetch('/api/random-word');
     const data = await response.json();
-    setCurrentWord(data.word);
+    setGameState(prev => ({ ...prev, currentWord: data.word }));
   };
 
   useEffect(() => {
     getRandomWord();
-    // Load previous results from localStorage
     const saved = localStorage.getItem('practice_results');
     if (saved) {
       setGameResults(JSON.parse(saved));
     }
   }, []);
 
-  const handleGameComplete = (won: boolean, attempts: number) => {
-    if (gameStatus !== 'playing') return;
-    setGameStatus(won ? 'won' : 'lost');
-
+  const handleGameComplete = (won: boolean, attempts: number, gameGuesses: string[]) => {
+    if (gameState.gameStatus !== 'playing') return;
+    
     const newResult: GameResult = {
-      word: currentWord,
+      word: gameState.currentWord,
       attempts,
       won,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      guesses: gameGuesses
     };
     
     const updatedResults = [newResult, ...gameResults];
@@ -51,88 +49,91 @@ export default function PracticePage() {
     localStorage.setItem('practice_results', JSON.stringify(updatedResults));
     
     if (won) {
-      setShowConfetti(true);
+      // Show confetti first
+      setGameState(prev => ({ ...prev, gameStatus: 'won', showConfetti: true }));
+      
+      // After 5 seconds, hide confetti and show win modal
       setTimeout(() => {
-        setShowConfetti(false);
-      }, 3000);
+        setGameState(prev => ({ ...prev, showConfetti: false, showWinModal: true }));
+      }, 5000);
+    } else {
+      // Immediately show game over modal for losses
+      setGameState(prev => ({ 
+        ...prev, 
+        gameStatus: 'lost',
+        showWinModal: true 
+      }));
     }
   };
 
-  // Add handler for when game is restarted
   const handleRestart = async () => {
-    await getRandomWord(); // Get new word first
-    setGameStatus('playing'); // Reset game status
-    setShowConfetti(false); // Ensure confetti is off
+    // First reset the game state
+    setGameState(prev => ({ 
+      ...prev, 
+      gameStatus: 'playing',
+      showConfetti: false,
+      showWinModal: false 
+    }));
+    
+    // Clear guesses
+    setGuesses([]);
+    
+    // Then fetch a new word
+    try {
+      const response = await fetch('/api/random-word');
+      const data = await response.json();
+      
+      // Update the word after resetting the state
+      setGameState(prev => ({ 
+        ...prev, 
+        currentWord: data.word,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch new word:', error);
+    }
   };
 
   return (
     <div className="flex-1 flex justify-center relative">
-      {showConfetti && (
-        <ReactConfetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={500}
-          gravity={0.3}
-        />
-      )}
       <motion.div 
         className="flex flex-col lg:flex-row gap-8 p-4 sm:p-8 w-full max-w-7xl mx-auto"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Game Area */}
         <div className="flex-1">
-          {currentWord && (
-            <WordleGame 
-              targetWord={currentWord}
-              onGameComplete={handleGameComplete}
-              showConfetti={showConfetti}
-              isPractice={true}
-              onRestart={handleRestart}
-            />
+          {gameState.currentWord && (
+            <>
+              <WordleGame 
+                targetWord={gameState.currentWord}
+                onGameComplete={handleGameComplete}
+                guesses={guesses}
+                onGuessesChange={setGuesses}
+              />
+
+              <HintButton 
+                targetWord={gameState.currentWord}
+                guesses={guesses}
+                gameOver={gameState.gameStatus !== 'playing'}
+              />
+            </>
           )}
         </div>
 
-        {/* Results Panel */}
-        <div className="lg:w-80 space-y-4 max-h-[400px] lg:max-h-[calc(100vh-8rem)] overflow-y-auto pr-2">
-          {gameResults.map((result, index) => (
-            <div 
-              key={index}
-              className="bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-sm rounded-lg shadow-xl p-4"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-lg text-[#2980b9] dark:text-white">
-                  {result.word}
-                </span>
-                <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-                  result.won 
-                    ? 'bg-[#3498db] dark:bg-gray-800 text-white'
-                    : 'bg-[#e74c3c] dark:bg-gray-800 text-white'
-                }`}>
-                  {result.won 
-                    ? `${result.attempts} ${result.attempts === 1 ? 'try' : 'tries'}`
-                    : 'Failed'
-                  }
-                </span>
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {new Date(result.timestamp).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-            </div>
-          ))}
-
-          {gameResults.length === 0 && (
-            <div className="text-center text-white/80 italic">
-              Play some games to see your history
-            </div>
-          )}
-        </div>
+        <ResultsPanel results={gameResults} />
       </motion.div>
+
+      <GameConfetti show={gameState.showConfetti} />
+
+      <AnimatePresence mode="wait">
+        {gameState.showWinModal && (
+          <PracticeGameOverModal
+            onClose={handleRestart}
+            word={gameState.currentWord}
+            hasWon={gameState.gameStatus === 'won'}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 } 
