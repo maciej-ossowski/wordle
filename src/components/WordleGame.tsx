@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { KEYBOARD_ROWS, WORD_LENGTH, MAX_GUESSES } from '@/lib/constants';
@@ -35,43 +35,44 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Handle keyboard input
-  const handleKeyInput = (key: string) => {
-    if (gameOver) return;
-    
-    if (key === 'ENTER') {
-      if (currentGuess.length === WORD_LENGTH) {
-        submitGuess();
-      } else {
-        setShakingRow(guesses.length);
-        setTimeout(() => setShakingRow(null), 400);
+  // Move submitGuess inside useMemo
+  const handleKeyInput = useMemo(() => {
+    const submitGuess = () => {
+      const newGuesses = [...guesses, currentGuess];
+      setGuesses(newGuesses);
+      setCurrentGuess('');
+
+      const won = currentGuess === targetWord;
+      if (won || newGuesses.length >= MAX_GUESSES) {
+        setGameOver(true);
+        if (onGameComplete) {
+          onGameComplete(won, newGuesses.length);
+        }
+        setTimeout(() => {
+          setShowModal(true);
+        }, 2000);
       }
-    } else if (key === '⌫') {
-      setCurrentGuess(prev => prev.slice(0, -1));
-    } else if (currentGuess.length < WORD_LENGTH) {
-      setCurrentGuess(prev => prev + key);
-    }
-  };
+    };
 
-  // Submit guess
-  const submitGuess = () => {
-    const newGuesses = [...guesses, currentGuess];
-    setGuesses(newGuesses);
-    setCurrentGuess('');
-
-    const won = currentGuess === targetWord;
-    if (won || newGuesses.length >= MAX_GUESSES) {
-      setGameOver(true);
-      if (onGameComplete) {
-        onGameComplete(won, newGuesses.length);
+    return (key: string) => {
+      if (gameOver) return;
+      
+      if (key === 'ENTER') {
+        if (currentGuess.length === WORD_LENGTH) {
+          submitGuess();
+        } else {
+          setShakingRow(guesses.length);
+          setTimeout(() => setShakingRow(null), 400);
+        }
+      } else if (key === '⌫') {
+        setCurrentGuess(prev => prev.slice(0, -1));
+      } else if (currentGuess.length < WORD_LENGTH) {
+        setCurrentGuess(prev => prev + key);
       }
-      setTimeout(() => {
-        setShowModal(true);
-      }, 2000);
-    }
-  };
+    };
+  }, [currentGuess, gameOver, guesses, targetWord, onGameComplete]);
 
-  // Handle physical keyboard input
+  // Use handleKeyInput directly (no destructuring)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toUpperCase();
@@ -86,7 +87,7 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentGuess, gameOver]);
+  }, [handleKeyInput]);
 
   // Function to determine tile color
   const getTileColor = (letter: string, index: number, word: string) => {

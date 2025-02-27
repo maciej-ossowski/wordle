@@ -1,4 +1,4 @@
-export function getTodayKey() {
-  const date = new Date();
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+export function getTodayKey(): string {
+  const today = new Date();
+  return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 } 

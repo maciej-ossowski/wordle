@@ -3,7 +3,6 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 
 export default function Home() {
   const [username, setUsername] = useState('');
@@ -15,6 +14,7 @@ export default function Home() {
     const stored = localStorage.getItem('wordle_username');
     if (stored) {
       setSavedUsername(stored);
+      router.push('/wordle');
       
       // Check if the username was stored more than 24 hours ago
       const timestamp = localStorage.getItem('wordle_username_timestamp');
@@ -29,7 +29,7 @@ export default function Home() {
         }
       }
     }
-  }, []);
+  }, [router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

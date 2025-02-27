@@ -1,7 +1,5 @@
 'use client';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
 interface NavigationProps {
@@ -9,7 +7,7 @@ interface NavigationProps {
   setShowAbout?: (show: boolean) => void;
 }
 
-export function Navigation({ showAbout, setShowAbout }: NavigationProps) {
+export function Navigation({ setShowAbout }: NavigationProps) {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
 

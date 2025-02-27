@@ -1,12 +1,27 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { Navigation } from '@/components/Navigation';
 import { getTodayKey } from '@/lib/utils';
+
+interface DailyResult {
+  word: string;
+  won: boolean;
+  attempts: number;
+  date: string;
+  guesses: string[];
+}
+
+// Add this type before the isDailyResult function
+type UnknownResult = {
+  word?: unknown;
+  won?: unknown;
+  attempts?: unknown;
+  date?: unknown;
+  guesses?: unknown;
+};
 
 const KEYBOARD_ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -35,14 +50,6 @@ const keyVariants = {
   pressed: { scale: 0.9 },
   tap: { scale: 0.9 }
 };
-
-interface DailyResult {
-  word: string;
-  won: boolean;
-  attempts: number;
-  date: string;
-  guesses: string[];
-}
 
 interface Stats {
   currentStreak: number;
@@ -94,6 +101,15 @@ export default function WordlePage() {
   const [usedHint, setUsedHint] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
   const [hintLetter, setHintLetter] = useState<{letter: string, position: number} | null>(null);
+  const [stats, setStats] = useState<Stats>({
+    currentStreak: 0,
+    maxStreak: 0,
+    totalGames: 0,
+    wins: 0,
+    attempts: {
+      1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, fail: 0
+    }
+  });
 
   // Add username check
   useEffect(() => {
@@ -131,7 +147,29 @@ export default function WordlePage() {
       const savedResult = localStorage.getItem(`wordle_daily_${todayKey}`);
       
       if (savedResult) {
-        setDailyResult(JSON.parse(savedResult));
+
+        try {
+            const parsedResult = JSON.parse(savedResult);
+            if (isDailyResult(parsedResult)) {
+              setDailyResult(parsedResult);
+            } else {
+              console.error("Parsed result is not a valid DailyResult");
+            }
+          } catch (error) {
+            console.error("Error parsing saved result", error);
+          }
+          
+          // Update the function signature
+          function isDailyResult(result: UnknownResult): result is DailyResult {
+            return (
+              typeof result === 'object' &&
+              typeof result.word === 'string' &&
+              typeof result.won === 'boolean' &&
+              typeof result.attempts === 'number' &&
+              typeof result.date === 'string' &&
+              Array.isArray(result.guesses)
+            );
+          }
       }
 
       try {
@@ -146,6 +184,14 @@ export default function WordlePage() {
     };
 
     checkDailyResult();
+  }, []);
+
+  // Load stats on mount
+  useEffect(() => {
+    const savedStats = localStorage.getItem('wordle_stats');
+    if (savedStats) {
+      setStats(JSON.parse(savedStats));
+    }
   }, []);
 
   // Memoize submitGuess function
@@ -170,7 +216,7 @@ export default function WordlePage() {
       
       // Update statistics
       const savedStats = localStorage.getItem('wordle_stats');
-      const stats: Stats = savedStats ? JSON.parse(savedStats) : {
+      const newStats: Stats = savedStats ? JSON.parse(savedStats) : {
         currentStreak: 0,
         maxStreak: 0,
         totalGames: 0,
@@ -180,19 +226,21 @@ export default function WordlePage() {
         }
       };
 
-      stats.totalGames += 1;
+      newStats.totalGames += 1;
       
       if (hasWon) {
-        stats.wins += 1;
-        stats.currentStreak += 1;
-        stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
-        stats.attempts[newGuesses.length as keyof typeof stats.attempts] += 1;
+        newStats.wins += 1;
+        newStats.currentStreak += 1;
+        newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
+        newStats.attempts[newGuesses.length as keyof typeof newStats.attempts] += 1;
       } else {
-        stats.currentStreak = 0;
-        stats.attempts.fail += 1;
+        newStats.currentStreak = 0;
+        newStats.attempts.fail += 1;
       }
 
-      localStorage.setItem('wordle_stats', JSON.stringify(stats));
+      // Save updated stats and update state
+      localStorage.setItem('wordle_stats', JSON.stringify(newStats));
+      setStats(newStats);
 
       setTimeout(() => {
         setShowModal(true);
@@ -201,25 +249,26 @@ export default function WordlePage() {
   }, [currentGuess, guesses, targetWord]);
 
   // Memoize handleKeyInput with submitGuess dependency
-  const handleKeyInput = React.useCallback((key: string) => {
-    if (gameOver) return;
-    
-    if (key === 'ENTER') {
-      if (currentGuess.length === WORD_LENGTH) {
-        submitGuess();
-      } else {
-        // Shake the current row if word is incomplete
-        setShakingRow(guesses.length);
-        setTimeout(() => setShakingRow(null), 400);
+  const handleKeyInput = useMemo(() => {
+    return (key: string) => {
+      if (gameOver) return;
+      
+      if (key === 'ENTER') {
+        if (currentGuess.length === WORD_LENGTH) {
+          submitGuess();
+        } else {
+          setShakingRow(guesses.length);
+          setTimeout(() => setShakingRow(null), 400);
+        }
+      } else if (key === '⌫') {
+        setCurrentGuess(prev => prev.slice(0, -1));
+      } else if (currentGuess.length < WORD_LENGTH) {
+        setCurrentGuess(prev => prev + key);
       }
-    } else if (key === '⌫') {
-      setCurrentGuess(prev => prev.slice(0, -1));
-    } else if (currentGuess.length < WORD_LENGTH) {
-      setCurrentGuess(prev => prev + key);
-    }
+    };
   }, [currentGuess, gameOver, guesses.length, submitGuess]);
 
-  // Handle physical keyboard input
+  // Use handleKeyInput directly without destructuring
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toUpperCase();
@@ -234,7 +283,7 @@ export default function WordlePage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyInput]); // Now we only depend on the memoized handleKeyInput
+  }, [handleKeyInput]);
 
   // Function to determine tile color based on letter status
   const getTileColor = (letter: string, index: number, word: string) => {
@@ -277,7 +326,7 @@ export default function WordlePage() {
       });
     });
 
-    const availableIndices = [];
+    const availableIndices: number[] = [];
     for (let i = 0; i < targetWord.length; i++) {
       if (!correctLetters.has(i)) {
         availableIndices.push(i);
@@ -421,16 +470,15 @@ export default function WordlePage() {
         {/* Letters Grid Panel */}
         <div className="flex justify-center">
           {/* Confetti effect */}
-          {dailyResult && dailyResult.won && gameOver && (
-            <ReactConfetti
-              width={windowSize.width}
-              height={windowSize.height}
-              recycle={false}
-              numberOfPieces={500}
-              gravity={0.2}
-            />
-          )}
-
+          {dailyResult !== null && (dailyResult as DailyResult).won && gameOver && (
+                <ReactConfetti
+                    width={windowSize.width}
+                    height={windowSize.height}
+                    recycle={false}
+                    numberOfPieces={500}
+                    gravity={0.2}
+                />
+            )}
           {/* Game Board */}
           <div className="inline-grid grid-rows-6 gap-[6px] bg-[#3498db] p-[6px]">
             {[...Array(MAX_GUESSES)].map((_, rowIndex) => (
@@ -568,7 +616,9 @@ export default function WordlePage() {
                   <p className="text-xl mb-4">
                     The word was <span className="font-bold text-red-500">{targetWord}</span>
                   </p>
-                  <p className="text-gray-600 mb-6">Better luck next time!</p>
+                  <p className="text-gray-600 mb-6">
+                    You didn&apos;t solve today&apos;s puzzle
+                  </p>
 
                   {/* Stats for lost game */}
                   <div className="grid grid-cols-2 gap-4 mb-6">
@@ -664,7 +714,7 @@ export default function WordlePage() {
               className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
                 bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
             >
-              <div className="text-2xl font-bold mb-6 text-[#2980b9]">Here's Your Hint!</div>
+              <div className="text-2xl font-bold mb-6 text-[#2980b9]">Here&apos;s Your Hint!</div>
               {hintLetter && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-center gap-4">
