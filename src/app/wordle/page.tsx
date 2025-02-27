@@ -111,10 +111,13 @@ export default function WordlePage() {
     }
   });
 
-  // Add username check
+  // Update the username check effect
   useEffect(() => {
     const username = localStorage.getItem('wordle_username');
-    if (!username) {
+    const pathname = window.location.pathname;
+    
+    // Only redirect if we're on /wordle and there's no username
+    if (!username && pathname === '/wordle') {
       router.push('/');
     }
   }, [router]);

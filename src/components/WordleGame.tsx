@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { KEYBOARD_ROWS, WORD_LENGTH, MAX_GUESSES } from '@/lib/constants';
 import { tileVariants, keyVariants } from '@/lib/animations';
+import React from 'react';
 
 interface WordleGameProps {
   targetWord: string;
@@ -37,6 +38,7 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
 
   // Move submitGuess inside useMemo
   const handleKeyInput = useMemo(() => {
+    // Define submitGuess as a regular function, not a callback
     const submitGuess = () => {
       const newGuesses = [...guesses, currentGuess];
       setGuesses(newGuesses);
@@ -93,10 +95,9 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
   const getTileColor = (letter: string, index: number, word: string) => {
     if (!letter) return 'bg-white';
     if (word !== currentGuess && word) {
-      if (letter === targetWord[index]) return 'bg-[#818384]';
-      if (targetWord.includes(letter)) return 'bg-[#818384]';
-      if (letter === 'E') return 'bg-[#b59f3b]';
-      return 'bg-[#818384]';
+      if (letter === targetWord[index]) return 'bg-green-500'; // Correct position
+      if (targetWord.includes(letter)) return 'bg-yellow-500'; // Wrong position but in word
+      return 'bg-gray-500'; // Not in word
     }
     return 'bg-white';
   };
@@ -107,19 +108,19 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
       guess.split('').some((letter, i) => 
         letter === key && targetWord[i] === letter
       )
-    )) return 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white hover:from-emerald-500 hover:to-emerald-700 shadow-emerald-200 shadow-inner';
+    )) return 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700';
     
     if (guesses.some(guess => 
       guess.includes(key) && targetWord.includes(key)
-    )) return 'bg-gradient-to-br from-amber-400 to-amber-600 text-white hover:from-amber-500 hover:to-amber-700 shadow-amber-200 shadow-inner';
+    )) return 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white hover:from-yellow-500 hover:to-yellow-700';
     
     if (guesses.some(guess => guess.includes(key))) 
-      return 'bg-gradient-to-br from-gray-600 to-gray-800 text-white hover:from-gray-700 hover:to-gray-900 shadow-gray-200 shadow-inner';
+      return 'bg-gradient-to-br from-gray-600 to-gray-800 text-white hover:from-gray-700 hover:to-gray-900';
     
-    return 'bg-gradient-to-br from-blue-100 to-gray-200 text-gray-700 hover:from-blue-200 hover:to-gray-300 shadow-sm';
+    return 'bg-gradient-to-br from-blue-100 to-gray-200 text-gray-700 hover:from-blue-200 hover:to-gray-300';
   };
 
-  const hasWon = guesses.includes(targetWord);
+  const hasWon = currentGuess === targetWord || guesses.includes(targetWord);
 
   return (
     <div className="flex flex-col items-center gap-8">

@@ -1,35 +1,33 @@
 'use client';
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export default function Home() {
   const [username, setUsername] = useState('');
   const [savedUsername, setSavedUsername] = useState<string | null>(null);
-  const router = useRouter();
 
   // Check for existing username on component mount
   useEffect(() => {
     const stored = localStorage.getItem('wordle_username');
     if (stored) {
       setSavedUsername(stored);
-      router.push('/wordle');
+      // Remove auto-redirect
+      // router.push('/wordle');
       
       // Check if the username was stored more than 24 hours ago
       const timestamp = localStorage.getItem('wordle_username_timestamp');
       if (timestamp) {
         const storedTime = parseInt(timestamp);
-        const now = new Date().getTime();
+        const now = Date.now();
         if (now - storedTime > 24 * 60 * 60 * 1000) {
-          // Clear if more than 24 hours old
           localStorage.removeItem('wordle_username');
           localStorage.removeItem('wordle_username_timestamp');
           setSavedUsername(null);
         }
       }
     }
-  }, [router]);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
