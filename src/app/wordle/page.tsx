@@ -14,6 +14,7 @@ interface DailyResult {
   guesses: string[];
 }
 
+
 // Add this type before the isDailyResult function
 type UnknownResult = {
   word?: unknown;
