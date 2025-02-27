@@ -148,8 +148,8 @@ export default function WordlePage() {
     checkDailyResult();
   }, []);
 
-  // Handle keyboard input
-  const handleKeyInput = (key: string) => {
+  // Move handleKeyInput into useCallback to memoize it
+  const handleKeyInput = React.useCallback((key: string) => {
     if (gameOver) return;
     
     if (key === 'ENTER') {
@@ -165,7 +165,7 @@ export default function WordlePage() {
     } else if (currentGuess.length < WORD_LENGTH) {
       setCurrentGuess(prev => prev + key);
     }
-  };
+  }, [currentGuess, gameOver, guesses.length]);
 
   // Submit guess
   const submitGuess = () => {
@@ -236,7 +236,7 @@ export default function WordlePage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentGuess, gameOver]);
+  }, [handleKeyInput]); // Now we only depend on the memoized handleKeyInput
 
   // Function to determine tile color based on letter status
   const getTileColor = (letter: string, index: number, word: string) => {
