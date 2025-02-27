@@ -99,7 +99,6 @@ export default function WordlePage() {
   const [targetWord, setTargetWord] = useState('XXXXX');
   const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [usedHint, setUsedHint] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
   const [hintLetter, setHintLetter] = useState<{letter: string, position: number} | null>(null);
   const [stats, setStats] = useState<Stats>({
@@ -111,6 +110,9 @@ export default function WordlePage() {
       1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, fail: 0
     }
   });
+  const [hintsRemaining, setHintsRemaining] = useState(3); // Allow 3 hints per game
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [hasWon, setHasWon] = useState(false);
 
   // Update the username check effect
   useEffect(() => {
@@ -206,45 +208,52 @@ export default function WordlePage() {
 
     const hasWon = currentGuess === targetWord;
     if (hasWon || newGuesses.length >= MAX_GUESSES) {
-      const result: DailyResult = {
-        word: targetWord,
-        won: hasWon,
-        attempts: newGuesses.length,
-        date: getTodayKey(),
-        guesses: newGuesses
-      };
-      
-      localStorage.setItem(`wordle_daily_${getTodayKey()}`, JSON.stringify(result));
-      setDailyResult(result);
+      // Set these states for both daily and practice games
       setGameOver(true);
+      setHasWon(hasWon);
+      setShowConfetti(hasWon); // Set showConfetti when the game is won
       
-      // Update statistics
-      const savedStats = localStorage.getItem('wordle_stats');
-      const newStats: Stats = savedStats ? JSON.parse(savedStats) : {
-        currentStreak: 0,
-        maxStreak: 0,
-        totalGames: 0,
-        wins: 0,
-        attempts: {
-          1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, fail: 0
+      // Daily game specific logic
+      if (window.location.pathname === '/wordle') {
+        const result: DailyResult = {
+          word: targetWord,
+          won: hasWon,
+          attempts: newGuesses.length,
+          date: getTodayKey(),
+          guesses: newGuesses
+        };
+        
+        localStorage.setItem(`wordle_daily_${getTodayKey()}`, JSON.stringify(result));
+        setDailyResult(result);
+        
+        // Update statistics
+        const savedStats = localStorage.getItem('wordle_stats');
+        const newStats: Stats = savedStats ? JSON.parse(savedStats) : {
+          currentStreak: 0,
+          maxStreak: 0,
+          totalGames: 0,
+          wins: 0,
+          attempts: {
+            1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, fail: 0
+          }
+        };
+
+        newStats.totalGames += 1;
+        
+        if (hasWon) {
+          newStats.wins += 1;
+          newStats.currentStreak += 1;
+          newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
+          newStats.attempts[newGuesses.length as keyof typeof newStats.attempts] += 1;
+        } else {
+          newStats.currentStreak = 0;
+          newStats.attempts.fail += 1;
         }
-      };
 
-      newStats.totalGames += 1;
-      
-      if (hasWon) {
-        newStats.wins += 1;
-        newStats.currentStreak += 1;
-        newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
-        newStats.attempts[newGuesses.length as keyof typeof newStats.attempts] += 1;
-      } else {
-        newStats.currentStreak = 0;
-        newStats.attempts.fail += 1;
+        // Save updated stats and update state
+        localStorage.setItem('wordle_stats', JSON.stringify(newStats));
+        setStats(newStats);
       }
-
-      // Save updated stats and update state
-      localStorage.setItem('wordle_stats', JSON.stringify(newStats));
-      setStats(newStats);
 
       setTimeout(() => {
         setShowModal(true);
@@ -293,12 +302,11 @@ export default function WordlePage() {
   const getTileColor = (letter: string, index: number, word: string) => {
     if (!letter) return 'bg-white';
     if (word !== currentGuess && word) {
-      if (letter === targetWord[index]) return 'bg-[#818384]';
-      if (targetWord.includes(letter)) return 'bg-[#818384]';
-      if (letter === 'E') return 'bg-[#b59f3b]';
-      return 'bg-[#818384]';
+      if (letter === targetWord[index]) return 'bg-green-500'; // Correct position
+      if (targetWord.includes(letter)) return 'bg-yellow-500'; // Wrong position but in word
+      return 'bg-gray-500'; // Not in word
     }
-    return 'bg-white';
+    return 'bg-white border-2 border-gray-300'; // Current guess or empty
   };
 
   // Function to determine keyboard key color
@@ -321,6 +329,8 @@ export default function WordlePage() {
 
   // Update the getHint function
   const getHint = () => {
+    if (hintsRemaining <= 0) return;
+
     const correctLetters = new Set();
     guesses.forEach((guess) => {
       guess.split('').forEach((letter, index) => {
@@ -344,7 +354,7 @@ export default function WordlePage() {
         position: randomIndex + 1
       });
       setShowHintModal(true);
-      setUsedHint(true);
+      setHintsRemaining(prev => prev - 1);
     }
   };
 
@@ -474,15 +484,15 @@ export default function WordlePage() {
         {/* Letters Grid Panel */}
         <div className="flex justify-center">
           {/* Confetti effect */}
-          {dailyResult !== null && (dailyResult as DailyResult).won && gameOver && (
-                <ReactConfetti
-                    width={windowSize.width}
-                    height={windowSize.height}
-                    recycle={false}
-                    numberOfPieces={500}
-                    gravity={0.2}
-                />
-            )}
+          {showConfetti && hasWon && gameOver && (
+            <ReactConfetti
+              width={windowSize.width}
+              height={windowSize.height}
+              recycle={false}
+              numberOfPieces={500}
+              gravity={0.2}
+            />
+          )}
           {/* Game Board */}
           <div className="inline-grid grid-rows-6 gap-[6px] bg-[#3498db] p-[6px]">
             {[...Array(MAX_GUESSES)].map((_, rowIndex) => (
@@ -544,13 +554,13 @@ export default function WordlePage() {
         </div>
 
         {/* Hint Button */}
-        {!gameOver && !usedHint && (
+        {!gameOver && hintsRemaining > 0 && (
           <button
             onClick={getHint}
             className="text-white/80 hover:text-white underline underline-offset-4 
               transition-colors duration-200 text-sm mt-4"
           >
-            Get a hint (reveals one letter)
+            Get a hint ({hintsRemaining} remaining)
           </button>
         )}
       </div>
@@ -573,10 +583,9 @@ export default function WordlePage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md
-                text-center"
+                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
             >
-              {dailyResult ? (
+              {hasWon ? (
                 <>
                   <h2 className="text-4xl font-bold mb-4">🎉 Congratulations!</h2>
                   <p className="text-xl mb-4">
@@ -586,33 +595,35 @@ export default function WordlePage() {
                     You solved it in {guesses.length} {guesses.length === 1 ? 'try' : 'tries'}
                   </p>
 
-                  {/* Animated Stats Section */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-emerald-500">
-                        <AnimatedNumber value={stats.currentStreak} />
+                  {/* Show stats only for daily game */}
+                  {dailyResult && (
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-emerald-500">
+                          <AnimatedNumber value={stats.currentStreak} />
+                        </div>
+                        <div className="text-sm text-gray-600">Current Streak</div>
                       </div>
-                      <div className="text-sm text-gray-600">Current Streak</div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-500">
-                        <AnimatedNumber value={stats.maxStreak} />
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-500">
+                          <AnimatedNumber value={stats.maxStreak} />
+                        </div>
+                        <div className="text-sm text-gray-600">Max Streak</div>
                       </div>
-                      <div className="text-sm text-gray-600">Max Streak</div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-500">
-                        <AnimatedNumber value={stats.totalGames} />
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-500">
+                          <AnimatedNumber value={stats.totalGames} />
+                        </div>
+                        <div className="text-sm text-gray-600">Games Played</div>
                       </div>
-                      <div className="text-sm text-gray-600">Games Played</div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-amber-500">
-                        <AnimatedNumber value={Math.round((stats.wins / stats.totalGames) * 100)} />%
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-amber-500">
+                          <AnimatedNumber value={Math.round((stats.wins / stats.totalGames) * 100)} />%
+                        </div>
+                        <div className="text-sm text-gray-600">Win Rate</div>
                       </div>
-                      <div className="text-sm text-gray-600">Win Rate</div>
                     </div>
-                  </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -621,24 +632,29 @@ export default function WordlePage() {
                     The word was <span className="font-bold text-red-500">{targetWord}</span>
                   </p>
                   <p className="text-gray-600 mb-6">
-                    You didn&apos;t solve today&apos;s puzzle
+                    {dailyResult ? 
+                      "Better luck next time! Come back tomorrow for a new word." :
+                      "Better luck next time! Try another word."
+                    }
                   </p>
 
-                  {/* Stats for lost game */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-red-500">
-                        Streak Reset
+                  {/* Show stats only for daily game */}
+                  {dailyResult && (
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-red-500">
+                          Streak Reset
+                        </div>
+                        <div className="text-sm text-gray-600">Current Streak</div>
                       </div>
-                      <div className="text-sm text-gray-600">Current Streak</div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-500">
-                        <AnimatedNumber value={stats.maxStreak} />
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-500">
+                          <AnimatedNumber value={stats.maxStreak} />
+                        </div>
+                        <div className="text-sm text-gray-600">Max Streak</div>
                       </div>
-                      <div className="text-sm text-gray-600">Max Streak</div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
               
@@ -649,7 +665,7 @@ export default function WordlePage() {
                   hover:from-emerald-600 hover:to-teal-600 
                   transform hover:-translate-y-0.5 transition-all duration-200"
               >
-                Play Again
+                {dailyResult ? "Play Tomorrow" : "Play Again"}
               </button>
             </motion.div>
           </>
