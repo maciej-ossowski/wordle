@@ -22,6 +22,9 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
   });
+  const [usedHint, setUsedHint] = useState(false);
+  const [showHintModal, setShowHintModal] = useState(false);
+  const [hintLetter, setHintLetter] = useState<{letter: string, position: number} | null>(null);
 
   // Window size effect for confetti
   useEffect(() => {
@@ -38,7 +41,6 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
 
   // Move submitGuess inside useMemo
   const handleKeyInput = useMemo(() => {
-    // Define submitGuess as a regular function, not a callback
     const submitGuess = () => {
       const newGuesses = [...guesses, currentGuess];
       setGuesses(newGuesses);
@@ -99,7 +101,7 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
       if (targetWord.includes(letter)) return 'bg-yellow-500'; // Wrong position but in word
       return 'bg-gray-500'; // Not in word
     }
-    return 'bg-white';
+    return 'bg-white border-2 border-gray-300'; // Current guess or empty
   };
 
   // Function to determine keyboard key color
@@ -108,19 +110,47 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
       guess.split('').some((letter, i) => 
         letter === key && targetWord[i] === letter
       )
-    )) return 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700';
+    )) return 'bg-gradient-to-br from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700';
     
     if (guesses.some(guess => 
       guess.includes(key) && targetWord.includes(key)
-    )) return 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white hover:from-yellow-500 hover:to-yellow-700';
+    )) return 'bg-gradient-to-br from-yellow-500 to-yellow-600 text-white hover:from-yellow-600 hover:to-yellow-700';
     
     if (guesses.some(guess => guess.includes(key))) 
-      return 'bg-gradient-to-br from-gray-600 to-gray-800 text-white hover:from-gray-700 hover:to-gray-900';
+      return 'bg-gradient-to-br from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700';
     
     return 'bg-gradient-to-br from-blue-100 to-gray-200 text-gray-700 hover:from-blue-200 hover:to-gray-300';
   };
 
-  const hasWon = currentGuess === targetWord || guesses.includes(targetWord);
+  const hasWon = guesses.includes(targetWord) || currentGuess === targetWord;
+
+  const getHint = () => {
+    const correctLetters = new Set();
+    guesses.forEach((guess) => {
+      guess.split('').forEach((letter, index) => {
+        if (letter === targetWord[index]) {
+          correctLetters.add(index);
+        }
+      });
+    });
+
+    const availableIndices: number[] = [];
+    for (let i = 0; i < targetWord.length; i++) {
+      if (!correctLetters.has(i)) {
+        availableIndices.push(i);
+      }
+    }
+
+    if (availableIndices.length > 0) {
+      const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      setHintLetter({
+        letter: targetWord[randomIndex],
+        position: randomIndex + 1
+      });
+      setShowHintModal(true);
+      setUsedHint(true);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -196,6 +226,62 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true }: 
           </div>
         ))}
       </div>
+
+      {/* Hint Button */}
+      {!gameOver && !usedHint && (
+        <button
+          onClick={getHint}
+          className="text-white/80 hover:text-white underline underline-offset-4 
+            transition-colors duration-200 text-sm mt-4"
+        >
+          Get a hint (reveals one letter)
+        </button>
+      )}
+
+      {/* Hint Modal */}
+      <AnimatePresence>
+        {showHintModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowHintModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                bg-white rounded-xl p-8 shadow-2xl z-50 w-[90%] max-w-md text-center"
+            >
+              <div className="text-2xl font-bold mb-6 text-[#2980b9]">Here&apos;s Your Hint!</div>
+              {hintLetter && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="w-16 h-16 bg-[#3498db] rounded-lg flex items-center justify-center">
+                      <span className="text-3xl font-bold text-white">{hintLetter.letter}</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600">
+                    The letter <span className="font-bold text-[#2980b9]">{hintLetter.letter}</span> is 
+                    at position <span className="font-bold text-[#2980b9]">{hintLetter.position}</span>
+                  </p>
+                </div>
+              )}
+              <button
+                onClick={() => setShowHintModal(false)}
+                className="mt-6 w-full bg-[#3498db] text-white px-6 py-3 rounded-lg 
+                  font-bold shadow-lg hover:bg-[#2980b9] 
+                  transform hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Got it!
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Game Over Modal */}
       <AnimatePresence>
