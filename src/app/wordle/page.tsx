@@ -148,27 +148,8 @@ export default function WordlePage() {
     checkDailyResult();
   }, []);
 
-  // Move handleKeyInput into useCallback to memoize it
-  const handleKeyInput = React.useCallback((key: string) => {
-    if (gameOver) return;
-    
-    if (key === 'ENTER') {
-      if (currentGuess.length === WORD_LENGTH) {
-        submitGuess();
-      } else {
-        // Shake the current row if word is incomplete
-        setShakingRow(guesses.length);
-        setTimeout(() => setShakingRow(null), 400);
-      }
-    } else if (key === '⌫') {
-      setCurrentGuess(prev => prev.slice(0, -1));
-    } else if (currentGuess.length < WORD_LENGTH) {
-      setCurrentGuess(prev => prev + key);
-    }
-  }, [currentGuess, gameOver, guesses.length]);
-
-  // Submit guess
-  const submitGuess = () => {
+  // Memoize submitGuess function
+  const submitGuess = React.useCallback(() => {
     const newGuesses = [...guesses, currentGuess];
     setGuesses(newGuesses);
     setCurrentGuess('');
@@ -199,7 +180,6 @@ export default function WordlePage() {
         }
       };
 
-      // Update stats
       stats.totalGames += 1;
       
       if (hasWon) {
@@ -212,14 +192,32 @@ export default function WordlePage() {
         stats.attempts.fail += 1;
       }
 
-      // Save updated stats
       localStorage.setItem('wordle_stats', JSON.stringify(stats));
 
       setTimeout(() => {
         setShowModal(true);
       }, 2000);
     }
-  };
+  }, [currentGuess, guesses, targetWord]);
+
+  // Memoize handleKeyInput with submitGuess dependency
+  const handleKeyInput = React.useCallback((key: string) => {
+    if (gameOver) return;
+    
+    if (key === 'ENTER') {
+      if (currentGuess.length === WORD_LENGTH) {
+        submitGuess();
+      } else {
+        // Shake the current row if word is incomplete
+        setShakingRow(guesses.length);
+        setTimeout(() => setShakingRow(null), 400);
+      }
+    } else if (key === '⌫') {
+      setCurrentGuess(prev => prev.slice(0, -1));
+    } else if (currentGuess.length < WORD_LENGTH) {
+      setCurrentGuess(prev => prev + key);
+    }
+  }, [currentGuess, gameOver, guesses.length, submitGuess]);
 
   // Handle physical keyboard input
   useEffect(() => {
