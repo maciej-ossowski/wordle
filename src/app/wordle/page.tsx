@@ -6,6 +6,7 @@ import { getTodayKey } from '@/lib/utils';
 import { HowToPlay } from '@/components/HowToPlay';
 import { WordleGame } from '@/components/WordleGame';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactConfetti from 'react-confetti';
 
 interface DailyResult {
   word: string;
@@ -445,6 +446,17 @@ export default function WordlePage() {
       <AnimatePresence>
         {gameOver && showModal && (
           <>
+            {/* Add Confetti */}
+            {showConfetti && hasWon && (
+              <ReactConfetti
+                width={window.innerWidth}
+                height={window.innerHeight}
+                recycle={false}
+                numberOfPieces={500}
+                gravity={0.3}
+              />
+            )}
+
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
