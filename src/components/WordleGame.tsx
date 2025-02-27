@@ -2,10 +2,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
-import { KEYBOARD_ROWS, WORD_LENGTH, MAX_GUESSES } from '@/lib/constants';
+import { WORD_LENGTH, MAX_GUESSES } from '@/lib/constants';
 import { tileVariants, keyVariants } from '@/lib/animations';
 import React from 'react';
 import { HintModal } from './HintModal';
+
+const KEYBOARD_ROWS = {
+  desktop: [
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+    ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫']
+  ],
+  mobile: [
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I'],
+    ['O', 'P', 'A', 'S', 'D', 'F', 'G', 'H'],
+    ['J', 'K', 'L', 'Z', 'X', 'C', 'V', 'B'],
+    ['ENTER', 'N', 'M', '⌫']
+  ]
+} as const;
 
 interface WordleGameProps {
   targetWord: string;
@@ -226,28 +240,55 @@ export function WordleGame({ targetWord, onGameComplete, showConfetti = true, is
       </div>
 
       {/* Keyboard Panel */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-[600px] mb-8">
-        {KEYBOARD_ROWS.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex justify-center gap-1.5 mb-2">
-            {row.map((key) => (
-              <motion.button
-                key={key}
-                variants={keyVariants}
-                whileTap="tap"
-                onClick={() => handleKeyInput(key)}
-                className={`${
-                  key.length > 1 ? 'px-4 text-sm' : 'w-11'
-                } h-14 rounded-lg flex items-center justify-center font-bold 
-                transition-all duration-200
-                ${getKeyColor(key)}
-                active:scale-95 
-                hover:shadow-lg hover:-translate-y-0.5`}
-              >
-                {key}
-              </motion.button>
-            ))}
-          </div>
-        ))}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-2 sm:p-4 md:p-8 w-full max-w-[600px] mb-8">
+        {/* Desktop Keyboard */}
+        <div className="hidden sm:block">
+          {KEYBOARD_ROWS.desktop.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex justify-center gap-1.5 mb-2">
+              {row.map((key) => (
+                <motion.button
+                  key={key}
+                  variants={keyVariants}
+                  whileTap="tap"
+                  onClick={() => handleKeyInput(key)}
+                  className={`${
+                    key.length > 1 ? 'px-4 text-sm' : 'w-11'
+                  } h-14 rounded-lg flex items-center justify-center font-bold 
+                  transition-all duration-200
+                  ${getKeyColor(key)}
+                  active:scale-95 
+                  hover:shadow-lg hover:-translate-y-0.5`}
+                >
+                  {key}
+                </motion.button>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile Keyboard */}
+        <div className="block sm:hidden">
+          {KEYBOARD_ROWS.mobile.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex justify-center gap-[2px] mb-1">
+              {row.map((key) => (
+                <motion.button
+                  key={key}
+                  variants={keyVariants}
+                  whileTap="tap"
+                  onClick={() => handleKeyInput(key)}
+                  className={`${
+                    key.length > 1 ? 'px-2 text-xs' : 'w-8'
+                  } h-10 rounded-lg flex items-center justify-center font-bold 
+                  transition-all duration-200
+                  ${getKeyColor(key)}
+                  active:scale-95`}
+                >
+                  {key}
+                </motion.button>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Hint Button */}
