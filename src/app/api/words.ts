@@ -1,0 +1,22 @@
+export const WORD_LIST = [
+  'REACT',
+  'SWIFT',
+  'UNITY',
+  'GAMES',
+  'PIXEL',
+  'SCORE',
+  'LEVEL',
+  'POWER',
+  'BONUS',
+  'QUEST',
+  'WORLD',
+  'SKILL',
+  'SPEED',
+  'MAGIC',
+  'BOARD',
+  'MATCH',
+  'POINT',
+  'ROUND',
+  'STAGE',
+  'FINAL'
+]; 
