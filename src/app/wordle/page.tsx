@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { WordleGame } from '@/components/WordleGame';
@@ -13,7 +14,7 @@ import { HintButton } from '@/components/HintButton';
 export default function WordlePage() {
   const router = useRouter();
   const [gameState, setGameState] = useState({
-    targetWord: 'XXXXX',
+    targetWord: '',
     hasWon: false,
     gameOver: false,
     isLoading: true,
@@ -46,21 +47,43 @@ export default function WordlePage() {
   useEffect(() => {
     const loadGameState = async () => {
       const todayKey = getTodayKey();
-      const savedResult = localStorage.getItem(`wordle_daily_${todayKey}`);
       
+      // Check for existing daily result first
+      const savedResult = localStorage.getItem('daily_result');
       if (savedResult) {
         try {
           const parsedResult = JSON.parse(savedResult);
-          setDailyResult(parsedResult);
+          // Only use the result if it's from today
+          if (parsedResult.date === todayKey) {
+            setDailyResult(parsedResult);
+            setGuesses(parsedResult.guesses);
+            setGameState(prev => ({
+              ...prev,
+              isLoading: false,
+              targetWord: parsedResult.word,
+              hasWon: parsedResult.won,
+              gameOver: true
+            }));
+            return;
+          }
         } catch (error) {
           console.error("Error parsing saved result", error);
         }
       }
 
+      // If no valid result for today, load new word
       try {
         const response = await fetch('/api/word');
         const data = await response.json();
-        setGameState(prev => ({ ...prev, targetWord: data.word, isLoading: false }));
+        setGameState(prev => ({ 
+          ...prev, 
+          targetWord: data.word, 
+          isLoading: false,
+          gameOver: false,
+          hasWon: false,
+          showConfetti: false,
+          showingWinAnimation: false
+        }));
       } catch (error) {
         console.error('Failed to fetch word:', error);
         setGameState(prev => ({ ...prev, isLoading: false }));
@@ -89,10 +112,6 @@ export default function WordlePage() {
       guesses: gameGuesses
     };
 
-    // Save result
-    localStorage.setItem('daily_result', JSON.stringify(result));
-    setDailyResult(result);
-
     // Update stats
     const savedStats = localStorage.getItem('stats');
     const stats: Stats = savedStats ? JSON.parse(savedStats) : {
@@ -110,20 +129,36 @@ export default function WordlePage() {
       stats.currentStreak += 1;
       stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
       stats.attempts[attempts as keyof typeof stats.attempts] += 1;
+      
+      // Show confetti and set showingWinAnimation
+      setGameState(prev => ({ 
+        ...prev, 
+        hasWon: true, 
+        showConfetti: true,
+        showingWinAnimation: true 
+      }));
+
+      // After 5 seconds, hide confetti and show results
+      setTimeout(() => {
+        setGameState(prev => ({ 
+          ...prev, 
+          showConfetti: false,
+          showingWinAnimation: false 
+        }));
+        // Save result after animation
+        localStorage.setItem('daily_result', JSON.stringify(result));
+        setDailyResult(result);
+      }, 5000);
     } else {
+      // For losses, show results immediately
+      localStorage.setItem('daily_result', JSON.stringify(result));
+      setDailyResult(result);
       stats.currentStreak = 0;
       stats.attempts.fail += 1;
     }
 
     localStorage.setItem('stats', JSON.stringify(stats));
     setStats(stats);
-
-    if (won) {
-      setGameState(prev => ({ ...prev, hasWon: true, showConfetti: true }));
-      setTimeout(() => {
-        setGameState(prev => ({ ...prev, showConfetti: false }));
-      }, 5000);
-    }
   };
 
   // Reset guesses when handleReset is called
@@ -161,7 +196,8 @@ export default function WordlePage() {
     }
   };
 
-  if (gameState.isLoading) {
+  // Show loading state only when loading and no word is available
+  if (gameState.isLoading && !gameState.targetWord) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-white text-2xl">Loading...</div>
@@ -169,55 +205,76 @@ export default function WordlePage() {
     );
   }
 
+  // Show results if we have them and not showing win animation
   if (dailyResult && !gameState.showingWinAnimation) {
     return (
       <div className="flex-1 flex items-center justify-center relative">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-6 p-8 bg-white/10 rounded-xl backdrop-blur-sm">
           <DailyResultDisplay result={dailyResult} />
           
-          <button
-            onClick={handleReset}
-            className="text-white/80 hover:text-white underline underline-offset-4 
-              transition-colors duration-200 text-sm"
-          >
-            Play Practice Mode
-          </button>
+          <div className="flex flex-col items-center gap-4">
+            <a
+              href="/practice"
+              className="text-white/80 dark:text-white dark:hover:text-white hover:text-white underline underline-offset-4 
+                transition-colors duration-200 text-sm cursor-pointer"
+            >
+              Try Practice Mode
+            </a>
+
+            <a
+              onClick={handleReset}
+              className="text-white/60 dark:text-white dark:hover:text-white hover:text-white/80 underline underline-offset-4 
+                transition-colors duration-200 text-xs cursor-pointer"
+            >
+              Reset Today&apos;s Game
+            </a>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="flex-1 flex items-center justify-center relative">
-      <div className="flex flex-col items-center w-full">
-        <motion.div 
-          className="z-10 flex flex-col items-center gap-8 my-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <WordleGame 
-            targetWord={gameState.targetWord}
-            onGameComplete={handleGameComplete}
-            guesses={guesses}
-            onGuessesChange={setGuesses}
-          />
+  // Show game if we have a word and not showing results
+  if (gameState.targetWord) {
+    return (
+      <div className="flex-1 flex items-center justify-center relative">
+        <div className="flex flex-col items-center w-full">
+          <motion.div 
+            className="z-10 flex flex-col items-center gap-8 my-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <WordleGame 
+              targetWord={gameState.targetWord}
+              onGameComplete={handleGameComplete}
+              guesses={guesses}
+              onGuessesChange={setGuesses}
+            />
 
-          <HintButton 
-            targetWord={gameState.targetWord}
-            guesses={guesses}
-            gameOver={gameState.gameOver}
-          />
-        </motion.div>
+            <HintButton 
+              targetWord={gameState.targetWord}
+              guesses={guesses}
+              gameOver={gameState.gameOver}
+            />
+          </motion.div>
 
-        <GameConfetti show={gameState.showConfetti} />
+          <GameConfetti show={gameState.showConfetti} />
 
-        <AnimatePresence>
-          {gameState.showAbout && (
-            <HowToPlay onClose={() => setGameState(prev => ({ ...prev, showAbout: false }))} />
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {gameState.showAbout && (
+              <HowToPlay onClose={() => setGameState(prev => ({ ...prev, showAbout: false }))} />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
+    );
+  }
+
+  // Fallback loading state
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-white text-2xl">Loading...</div>
     </div>
   );
 } 
